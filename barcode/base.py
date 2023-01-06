@@ -22,6 +22,9 @@ class Barcode:
         "foreground": "black",
         "write_text": True,
         "text": "",
+        "guard_height_factor": 1.1,
+        "margin_top" : 1,
+        "margin_bottom" : 1
     }
 
     def to_ascii(self):
