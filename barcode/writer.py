@@ -123,8 +123,8 @@ class BaseWriter:
         self.text_line_distance = 1
         self.center_text = True
         self.guard_height_factor = 1.1
-        self.margin_top = 1
-        self.margin_bottom = 1
+        self.margin_top = 0
+        self.margin_bottom = 0
 
     def calculate_size(self, modules_per_line: int, number_of_lines: int) -> tuple:
         """Calculates the size of the barcode in pixel.
