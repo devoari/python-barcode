@@ -21,6 +21,9 @@ Example::
     '0132354187'
 
 """
+
+from __future__ import annotations
+
 from barcode.ean import EuropeanArticleNumber13
 from barcode.errors import BarcodeError
 from barcode.errors import WrongCountryCodeError
@@ -40,15 +43,14 @@ class InternationalStandardBookNumber13(EuropeanArticleNumber13):
 
     name = "ISBN-13"
 
-    def __init__(self, isbn, writer=None):
+    def __init__(self, isbn, writer=None, no_checksum=False, guardbar=False) -> None:
         isbn = isbn.replace("-", "")
         self.isbn13 = isbn
         if isbn[:3] not in ("978", "979"):
             raise WrongCountryCodeError("ISBN must start with 978 or 979.")
-        if isbn[:3] == "979":
-            if isbn[3:5] not in ("10", "11"):
-                raise BarcodeError("ISBN must start with 97910 or 97911.")
-        super().__init__(isbn, writer)
+        if isbn[:3] == "979" and isbn[3:4] not in ("1", "8"):
+            raise BarcodeError("ISBN must start with 97910 or 97911.")
+        super().__init__(isbn, writer, no_checksum, guardbar)
 
 
 class InternationalStandardBookNumber10(InternationalStandardBookNumber13):
@@ -66,7 +68,7 @@ class InternationalStandardBookNumber10(InternationalStandardBookNumber13):
 
     digits = 9
 
-    def __init__(self, isbn, writer=None):
+    def __init__(self, isbn, writer=None) -> None:
         isbn = isbn.replace("-", "")
         isbn = isbn[: self.digits]
         super().__init__("978" + isbn, writer)
@@ -77,10 +79,10 @@ class InternationalStandardBookNumber10(InternationalStandardBookNumber13):
         tmp = sum(x * int(y) for x, y in enumerate(self.isbn10[:9], start=1)) % 11
         if tmp == 10:
             return "X"
-        else:
-            return tmp
 
-    def __str__(self):
+        return tmp
+
+    def __str__(self) -> str:
         return self.isbn10
 
 
@@ -99,7 +101,7 @@ class InternationalStandardSerialNumber(EuropeanArticleNumber13):
 
     digits = 7
 
-    def __init__(self, issn, writer=None):
+    def __init__(self, issn, writer=None) -> None:
         issn = issn.replace("-", "")
         issn = issn[: self.digits]
         self.issn = issn
@@ -114,13 +116,13 @@ class InternationalStandardSerialNumber(EuropeanArticleNumber13):
         )
         if tmp == 10:
             return "X"
-        else:
-            return tmp
+
+        return tmp
 
     def make_ean(self):
         return f"977{self.issn[:7]}00{self._calculate_checksum()}"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.issn
 
 

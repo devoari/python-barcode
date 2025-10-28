@@ -1,13 +1,9 @@
 python-barcode
 ==============
 
-.. image:: https://action-badges.now.sh/WhyNotHugo/python-barcode
+.. image:: https://github.com/WhyNotHugo/python-barcode/actions/workflows/tests.yml/badge.svg
   :target: https://github.com/WhyNotHugo/python-barcode/actions
   :alt: CI status
-
-.. image:: https://codecov.io/gh/WhyNotHugo/python-barcode/branch/main/graph/badge.svg
-  :target: https://codecov.io/gh/WhyNotHugo/python-barcode
-  :alt: Build coverage
 
 .. image:: https://readthedocs.org/projects/python-barcode/badge/
   :target: https://python-barcode.rtfd.org/
@@ -30,7 +26,7 @@ python-barcode
 There are no external dependencies when generating SVG files.
 Pillow is required for generating images (e.g.: PNGs).
 
-Support Python 3.7 to 3.11.
+Support Python 3.9 to 3.13.
 
 .. image:: example-ean13.png
   :target: https://github.com/WhyNotHugo/python-barcode
@@ -40,6 +36,8 @@ Documentation
 -------------
 
 Full documentation is published at http://python-barcode.rtfd.io/
+
+You can build the documentation locally using ``make -C docs html``.
 
 Licence
 -------

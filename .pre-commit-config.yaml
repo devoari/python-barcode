@@ -1,32 +1,19 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: debug-statements
-  - repo: https://github.com/pycqa/isort
-    rev: 5.10.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 'v0.11.9'
     hooks:
-      - id: isort
-  - repo: https://github.com/psf/black
-    rev: "22.10.0"
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+  - repo: https://github.com/netromdk/vermin
+    rev: v1.6.0
     hooks:
-      - id: black
-  - repo: https://github.com/PyCQA/flake8
-    rev: "6.0.0"
-    hooks:
-      - id: flake8
-        additional_dependencies:
-          - flake8-comprehensions
-          - flake8-bugbear
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.2.2
-    hooks:
-    -   id: pyupgrade
-        args: [--py37-plus]
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v0.991'
-    hooks:
-    -   id: mypy
+      - id: vermin
+        args: ['-t=3.9-', '--violations']

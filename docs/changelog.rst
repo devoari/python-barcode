@@ -1,11 +1,45 @@
 Changelog
 ---------
 
-unreleased
-~~~~~~~~~~
+v0.16.2
+~~~~~~~
+* Add support for Python 3.13.
 
-* **Breaking** Dropped support for Python 3.6.
+v0.16.1
+~~~~~~~
+* Switch from ``setup.py`` to ``pyproject.toml``. Only affects how installation
+  from source is performed, and has no runtime impact.
+
+v0.16.0
+~~~~~~~
+
+* **Breaking** Drop support for Python 3.7 and 3.8.
+* Make image DPI configurable.
+* Fixed inconsistent checksum calculation when calculating the checksum
+  multiple times for EAN barcodes.
+* Update the documentation with some barcodes that were not previously
+  documented.
+* Specifying ``None`` as a background for the ``SVGWriter``, no background is
+  included resulting in a transparent background.
+* Do not paint text if its size would be zero, to avoid an "invalid ppem value"
+  error with newer versions of Pillow.
+* Optimization of code creation, avoiding to many charset switch.
+  This results in shorter codes; according to GS1 codes should not
+  be longer than 165 mm (6.5"). (#232)
+
+v0.15.1
+~~~~~~~
+
+* Add missing dependency to release script.
+
+v0.15.0
+~~~~~~~
+
+* **Breaking** Dropped support for Python 3.6 and 3.7.
 * Added support for Python 3.11.
+* Fixed compatibility with Pillow 10.0.
+* Updated ISBN to support newer allocated ranges.
+* Improved type hints.
 
 v0.14.0
 ~~~~~~~

@@ -2,6 +2,9 @@
 
 :Provided barcodes: UPC-A
 """
+
+from __future__ import annotations
+
 __docformat__ = "restructuredtext en"
 
 from functools import reduce
@@ -22,7 +25,7 @@ class UniversalProductCodeA(Barcode):
 
     digits = 11
 
-    def __init__(self, upc, writer=None, make_ean=False):
+    def __init__(self, upc, writer=None, make_ean=False) -> None:
         """Initializes new UPC-A barcode.
 
         :param str upc: The upc number as string.
@@ -44,17 +47,17 @@ class UniversalProductCodeA(Barcode):
         self.upc = f"{upc}{self.calculate_checksum()}"
         self.writer = writer or self.default_writer()
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.ean:
             return "0" + self.upc
-        else:
-            return self.upc
+
+        return self.upc
 
     def get_fullcode(self):
         if self.ean:
             return "0" + self.upc
-        else:
-            return self.upc
+
+        return self.upc
 
     def calculate_checksum(self):
         """Calculates the checksum for UPCA/UPC codes
@@ -72,14 +75,14 @@ class UniversalProductCodeA(Barcode):
         check = (evensum + oddsum * 3) % 10
         if check == 0:
             return 0
-        else:
-            return 10 - check
 
-    def build(self):
+        return 10 - check
+
+    def build(self) -> list[str]:
         """Builds the barcode pattern from 'self.upc'
 
         :return: The pattern as string
-        :rtype: str
+        :rtype: List containing the string as a single element
         """
         code = _upc.EDGE[:]
 
@@ -95,16 +98,17 @@ class UniversalProductCodeA(Barcode):
 
         return [code]
 
-    def to_ascii(self):
+    def to_ascii(self) -> str:
         """Returns an ascii representation of the barcode.
 
         :rtype: str
         """
 
-        code = self.build()
-        for i, line in enumerate(code):
-            code[i] = line.replace("1", "|").replace("0", "_")
-        return "\n".join(code)
+        code_list = self.build()
+        if len(code_list) != 1:
+            raise RuntimeError("Code list must contain a single element.")
+        code = code_list[0]
+        return code.replace("1", "|").replace("0", "_")
 
     def render(self, writer_options=None, text=None):
         options = {"module_width": 0.33}

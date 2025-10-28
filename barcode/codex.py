@@ -2,12 +2,23 @@
 
 :Provided barcodes: Code 39, Code 128, PZN
 """
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+from typing import Literal
+
 from barcode.base import Barcode
 from barcode.charsets import code39
 from barcode.charsets import code128
 from barcode.errors import BarcodeError
 from barcode.errors import IllegalCharacterError
 from barcode.errors import NumberOfDigitsError
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
+
+    from barcode.writer import BaseWriter
 
 __docformat__ = "restructuredtext en"
 
@@ -16,7 +27,7 @@ MIN_SIZE = 0.2
 MIN_QUIET_ZONE = 2.54
 
 
-def check_code(code, name, allowed):
+def check_code(code: str, name: str, allowed: Collection[str]) -> None:
     wrong = []
     for char in code:
         if char not in allowed:
@@ -34,7 +45,7 @@ class Code39(Barcode):
 
     name = "Code 39"
 
-    def __init__(self, code: str, writer=None, add_checksum: bool = True):
+    def __init__(self, code: str, writer=None, add_checksum: bool = True) -> None:
         r"""
         :param code: Code 39 string without \* and without checksum.
         :param writer: A ``barcode.writer`` instance used to render the barcode
@@ -48,25 +59,29 @@ class Code39(Barcode):
         self.writer = writer or self.default_writer()
         check_code(self.code, self.name, code39.REF)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.code
 
     def get_fullcode(self) -> str:
         """:returns: The full code as it will be encoded."""
         return self.code
 
-    def calculate_checksum(self):
+    def calculate_checksum(self) -> str:
         check = sum(code39.MAP[x][0] for x in self.code) % 43
         for k, v in code39.MAP.items():
             if check == v[0]:
                 return k
+        raise RuntimeError(
+            "All possible values for the checksum should have been included in the map."
+        )
 
-    def build(self):
+    def build(self) -> list[str]:
         chars = [code39.EDGE]
         for char in self.code:
             chars.append(code39.MAP[char][1])
         chars.append(code39.EDGE)
-        return [code39.MIDDLE.join(chars)]
+        result = code39.MIDDLE.join(chars)
+        return [result]
 
     def render(self, writer_options=None, text=None):
         options = {"module_width": MIN_SIZE, "quiet_zone": MIN_QUIET_ZONE}
@@ -88,7 +103,7 @@ class PZN7(Code39):
 
     digits = 6
 
-    def __init__(self, pzn, writer=None):
+    def __init__(self, pzn, writer=None) -> None:
         pzn = pzn[: self.digits]
         if not pzn.isdigit():
             raise IllegalCharacterError("PZN can only contain numbers.")
@@ -108,8 +123,8 @@ class PZN7(Code39):
         checksum = sum_ % 11
         if checksum == 10:
             raise BarcodeError("Checksum can not be 10 for PZN.")
-        else:
-            return checksum
+
+        return checksum
 
 
 class PZN8(PZN7):
@@ -130,25 +145,31 @@ class Code128(Barcode):
     """
 
     name = "Code 128"
+    _charset: Literal["A", "B", "C"]
+    code: str
+    writer: BaseWriter
+    buffer: str
 
-    def __init__(self, code, writer=None):
+    def __init__(self, code: str, writer=None) -> None:
         self.code = code
         self.writer = writer or self.default_writer()
-        self._charset = "B"
-        self._buffer = ""
+        self._charset = "C"
+        self._digit_buffer = ""  # Accumulate pairs of digits for charset C
         check_code(self.code, self.name, code128.ALL)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.code
 
     @property
-    def encoded(self):
+    def encoded(self) -> list[int]:
         return self._build()
 
-    def get_fullcode(self):
+    def get_fullcode(self) -> str:
         return self.code
 
-    def _new_charset(self, which):
+    def _new_charset(self, which: Literal["A", "B", "C"]) -> list[int]:
+        if which == self._charset:
+            raise ValueError(f"Already in charset {which}")
         if which == "A":
             code = self._convert("TO_A")
         elif which == "B":
@@ -158,11 +179,21 @@ class Code128(Barcode):
         self._charset = which
         return [code]
 
-    def _maybe_switch_charset(self, pos):
+    # to be redefined in subclass if required
+    def _is_char_fnc1_char(self, char):
+        """Whether a character is the FNC1 character.
+
+        May be redefined by subclasses if required. FNC1 char is defined in GS1-128
+        specification and it is defined just the same for all encodings therefore this
+        sign should be treated in a special way.
+        """
+        return False
+
+    def _maybe_switch_charset(self, pos: int) -> list[int]:
         char = self.code[pos]
         next_ = self.code[pos : pos + 10]
 
-        def look_next():
+        def look_next() -> bool:
             digits = 0
             for c in next_:
                 if c.isdigit():
@@ -171,71 +202,97 @@ class Code128(Barcode):
                     break
             return digits > 3
 
-        codes = []
+        codes: list[int] = []
         if self._charset == "C" and not char.isdigit():
+            if self._is_char_fnc1_char(char) and not self._digit_buffer:
+                return codes
             if char in code128.B:
                 codes = self._new_charset("B")
             elif char in code128.A:
                 codes = self._new_charset("A")
-            if len(self._buffer) == 1:
-                codes.append(self._convert(self._buffer[0]))
-                self._buffer = ""
+            assert self._charset != "C"
+            if len(self._digit_buffer) == 1:
+                # Flush the remaining single digit from the buffer
+                codes.append(self._convert(self._digit_buffer[0]))
+                self._digit_buffer = ""
         elif self._charset == "B":
             if look_next():
                 codes = self._new_charset("C")
-            elif char not in code128.B:
-                if char in code128.A:
-                    codes = self._new_charset("A")
+            elif char not in code128.B and char in code128.A:
+                codes = self._new_charset("A")
         elif self._charset == "A":
             if look_next():
                 codes = self._new_charset("C")
-            elif char not in code128.A:
-                if char in code128.B:
-                    codes = self._new_charset("B")
+            elif char not in code128.A and char in code128.B:
+                codes = self._new_charset("B")
         return codes
 
-    def _convert(self, char):
+    def _convert(self, char: str) -> int:
+        """Convert a character to a code number for the current charset.
+
+        NOTE: encoding digits with charset C requires buffering and is not supported
+        here. Use _convert_or_buffer instead.
+        """
         if self._charset == "A":
             return code128.A[char]
-        elif self._charset == "B":
+        if self._charset == "B":
             return code128.B[char]
-        elif self._charset == "C":
-            if char in code128.C:
+        if self._charset == "C":
+            if char in ["TO_A", "TO_B"]:
                 return code128.C[char]
-            elif char.isdigit():
-                self._buffer += char
-                if len(self._buffer) == 2:
-                    value = int(self._buffer)
-                    self._buffer = ""
-                    return value
+            raise RuntimeError("Use _convert_or_buffer for charset C.")
+        raise RuntimeError(
+            f"Character {char} could not be converted in charset {self._charset}."
+        )
 
-    def _try_to_optimize(self, encoded):
+    def _convert_or_buffer(self, char: str) -> int | None:
+        """Convert a character to a code number for the current charset.
+
+        If charset C is active then digits are encoded in pairs. When the first digit
+        is encountered, it is buffered and None is returned.
+        """
+        if self._charset != "C":
+            return self._convert(char)
+        if char in code128.C:
+            return code128.C[char]
+        if char.isdigit():
+            self._digit_buffer += char
+            if len(self._digit_buffer) == 1:
+                # Wait for the second digit to group in pairs
+                return None
+            assert len(self._digit_buffer) == 2
+            value = int(self._digit_buffer)
+            self._digit_buffer = ""
+            return value
+        raise RuntimeError(f"Character {char} could not be converted in charset C.")
+
+    def _try_to_optimize(self, encoded: list[int]) -> list[int]:
         if encoded[1] in code128.TO:
             encoded[:2] = [code128.TO[encoded[1]]]
         return encoded
 
-    def _calculate_checksum(self, encoded):
+    def _calculate_checksum(self, encoded: list[int]) -> int:
         cs = [encoded[0]]
         for i, code_num in enumerate(encoded[1:], start=1):
             cs.append(i * code_num)
         return sum(cs) % 103
 
-    def _build(self):
-        encoded = [code128.START_CODES[self._charset]]
+    def _build(self) -> list[int]:
+        encoded: list[int] = [code128.START_CODES[self._charset]]
         for i, char in enumerate(self.code):
             encoded.extend(self._maybe_switch_charset(i))
-            code_num = self._convert(char)
+            code_num = self._convert_or_buffer(char)
             if code_num is not None:
                 encoded.append(code_num)
-        # Finally look in the buffer
-        if len(self._buffer) == 1:
+        # If we finish in charset C with a single digit remaining in the buffer,
+        # switch to charset B and flush out the buffer.
+        if len(self._digit_buffer) == 1:
             encoded.extend(self._new_charset("B"))
-            encoded.append(self._convert(self._buffer[0]))
-            self._buffer = ""
-        encoded = self._try_to_optimize(encoded)
-        return encoded
+            encoded.append(self._convert(self._digit_buffer[0]))
+            self._digit_buffer = ""
+        return self._try_to_optimize(encoded)
 
-    def build(self):
+    def build(self) -> list[str]:
         encoded = self._build()
         encoded.append(self._calculate_checksum(encoded))
         code = ""
@@ -251,7 +308,7 @@ class Code128(Barcode):
         return super().render(options, text)
 
 
-class Gs1_128(Code128):
+class Gs1_128(Code128):  # noqa: N801
     """
     following the norm, a gs1-128 barcode is a subset of code 128 barcode,
     it can be generated by prepending the code with the FNC1 character
@@ -263,12 +320,15 @@ class Gs1_128(Code128):
 
     FNC1_CHAR = "\xf1"
 
-    def __init__(self, code, writer=None):
+    def __init__(self, code, writer=None) -> None:
         code = self.FNC1_CHAR + code
         super().__init__(code, writer)
 
     def get_fullcode(self):
         return super().get_fullcode()[1:]
+
+    def _is_char_fnc1_char(self, char):
+        return char == self.FNC1_CHAR
 
 
 # For pre 0.8 compatibility

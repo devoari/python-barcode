@@ -32,6 +32,7 @@ be set).
 
 :font_size:
     Font size of the text under the barcode in pt as *integer*.
+    Font size zero suppresses text.
     Defaults to **10**.
 
 :text_distance:
@@ -55,6 +56,14 @@ be set).
 .. note::
    Some barcode classes change the above defaults to fit in some kind
    of specification.
+
+BaseWriter
+----------
+
+Both ``ImageWriter`` and ``SVGWriter`` are subclasses of ``BaseWriter``:
+
+.. autoclass:: barcode.writer.BaseWriter
+   :members:
 
 SVGWriter
 ---------
@@ -89,7 +98,7 @@ In addition to the common writer options you can give the following special opti
 Custom writers
 --------------
 
-It's possible to create your own writer by inheriting from `barcode.writer.BaseWriter`.
+It's possible to create your own writer by inheriting from ``barcode.writer.BaseWriter``.
 
 In your ``__init__`` method call BaseWriter's ``__init__`` and give your callbacks for:
 
@@ -121,5 +130,5 @@ Saving a compressed SVG (SVGZ):
     >>> filename
     'ean13.svgz'
 
-Now you have ean13.svg and the compressed ean13.svgz in your current
+Now you have ``ean13.svg`` and the compressed ``ean13.svgz`` in your current
 working directory. Open it and see the result.

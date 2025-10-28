@@ -2,6 +2,9 @@
 
 :Provided barcodes: Interleaved 2 of 5
 """
+
+from __future__ import annotations
+
 __docformat__ = "restructuredtext en"
 
 from barcode.base import Barcode
@@ -29,7 +32,7 @@ class ITF(Barcode):
 
     name = "ITF"
 
-    def __init__(self, code, writer=None, narrow=2, wide=5):
+    def __init__(self, code, writer=None, narrow=2, wide=5) -> None:
         if not code.isdigit():
             raise IllegalCharacterError("ITF code can only contain numbers.")
         # Length must be even, prepend 0 if necessary
@@ -40,13 +43,13 @@ class ITF(Barcode):
         self.narrow = narrow
         self.wide = wide
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.code
 
     def get_fullcode(self):
         return self.code
 
-    def build(self):
+    def build(self) -> list[str]:
         data = itf.START
         for i in range(0, len(self.code), 2):
             bars_digit = int(self.code[i])
